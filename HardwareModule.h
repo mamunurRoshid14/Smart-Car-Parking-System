@@ -1,3 +1,4 @@
+#include "esp32-hal.h"
 #include <LiquidCrystal.h>
 #include <ESP32Servo.h>
 #include <MFRC522.h>
@@ -29,6 +30,12 @@ Servo servo2;
 #define SERVO2_PIN 4
 
 bool slotStatus[NUM_SLOTS] = {false, false, false, false};
+unsigned long gate1opentime = 0;
+unsigned long gate2opentime = 0;
+unsigned long lastDispUpdate = 0;
+bool isgate1open=false;
+bool isgate2open=false;
+
 
 void initHardware() {
   pinMode(IR1, INPUT); pinMode(IR2, INPUT); pinMode(IR3, INPUT); pinMode(IR4, INPUT);
@@ -55,6 +62,7 @@ void updateSlotFromIR() {
 
 void displaySlots() {
   lcd.clear();
+  lastDispUpdate=millis();
   lcd.setCursor(0, 0); lcd.print("S1:"); lcd.print(slotStatus[0] ? "Full " : "Free ");
   lcd.print("S2:"); lcd.print(slotStatus[1] ? "Full" : "Free");
   lcd.setCursor(0, 1); lcd.print("S3:"); lcd.print(slotStatus[2] ? "Full " : "Free ");
@@ -77,12 +85,24 @@ String readRFID(MFRC522 &reader) {
 }
 
 void openGate(Servo &servo, const String &uid, int gate) {
+  servo.write(0);
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print(gate == 1 ? "Welcome UID: " : "Goodbye UID: ");
   lcd.setCursor(0, 1);
   lcd.print(uid.substring(0, 8));
+  delay(100);
   servo.write(90);
-  delay(2000);
+  lastDispUpdate=millis();
+  if(gate==1) isgate1open=true,gate1opentime=millis();
+  else isgate2open=true,gate2opentime=millis();
+  delay(50);
+}
+
+void closegate(Servo &servo, int gate) {
+  if(gate==1) isgate1open=false;
+  else isgate2open=false;
   servo.write(0);
+  displaySlots();
+  delay(50);
 }

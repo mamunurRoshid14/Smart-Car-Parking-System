@@ -5,17 +5,20 @@ unsigned long lastUpdate = 0;
 
 void setup() {
   Serial.begin(115200);
+  initHardware();
+  delay(200);
   initWiFi();
   syncTime();
   initFirebase();
-  initHardware();
   delay(1000);
 }
 
 void loop() {
   Serial.printf("Free heap: %d bytes\n", ESP.getFreeHeap());
   updateSlotFromIR();
-  displaySlots();
+  if(millis()-lastDispUpdate>3000) displaySlots();
+  if(isgate1open && millis()-gate1opentime>10000)closegate(servo1,1);
+  if(isgate2open && millis()-gate2opentime>10000)closegate(servo2,2);
 
   // RFID 1 = Entry
   String uid1 = readRFID(rfid1);
