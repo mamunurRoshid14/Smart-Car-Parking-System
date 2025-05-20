@@ -1,15 +1,18 @@
+#include "HardwareSerial.h"
 #include "esp32-hal.h"
 #include <LiquidCrystal.h>
 #include <ESP32Servo.h>
 #include <MFRC522.h>
 #include <SPI.h>
 
-// IR Sensors
-#define IR1 32
-#define IR2 33
-#define IR3 34
-#define IR4 35
-#define NUM_SLOTS 4
+#define MUX_SIG_PIN 35
+
+#define MUX_S0 2
+#define MUX_S1 21
+#define MUX_S2 3
+#define MUX_S3 1
+
+#define NUM_SLOTS 8 
 #define IR_THRESHOLD 500
 
 // LCD
@@ -37,10 +40,29 @@ bool isgate1open=false;
 bool isgate2open=false;
 
 
+
+void initMUX() {
+  pinMode(MUX_SIG_PIN, INPUT);
+  pinMode(MUX_S0, OUTPUT);
+  pinMode(MUX_S1, OUTPUT);
+  pinMode(MUX_S2, OUTPUT);
+  pinMode(MUX_S3, OUTPUT);
+}
+
+// Function to set MUX channel (0–15)
+void selectMUXChannel(uint16_t channel) {
+  digitalWrite(MUX_S0, channel & 0x01);
+  digitalWrite(MUX_S1, (channel >> 1) & 0x01);
+  digitalWrite(MUX_S2, (channel >> 2) & 0x01);
+  digitalWrite(MUX_S3, (channel >> 3) & 0x01);
+}
+
+
+
 void initHardware() {
-  pinMode(IR1, INPUT); pinMode(IR2, INPUT); pinMode(IR3, INPUT); pinMode(IR4, INPUT);
   servo1.attach(SERVO1_PIN); servo1.write(0);
   servo2.attach(SERVO2_PIN); servo2.write(0);
+  initMUX();
   SPI.begin();
   rfid1.PCD_Init(); rfid2.PCD_Init();
   lcd.begin(20, 4);
@@ -48,25 +70,41 @@ void initHardware() {
   delay(2000);
 }
 
+// Read IR sensor values from MUX
 void updateSlotFromIR() {
-  int values[NUM_SLOTS] = {
-    analogRead(IR1),
-    analogRead(IR2),
-    analogRead(IR3),
-    analogRead(IR4)
-  };
   for (int i = 0; i < NUM_SLOTS; i++) {
-    slotStatus[i] = (values[i] < IR_THRESHOLD);
+    selectMUXChannel(i);
+    delay(20); // allow signal to settle
+    int value = analogRead(MUX_SIG_PIN);
+    Serial.println(value);
+    slotStatus[i] = (value < IR_THRESHOLD);
   }
+  delay(50);
 }
 
 void displaySlots() {
   lcd.clear();
-  lastDispUpdate=millis();
-  lcd.setCursor(0, 0); lcd.print("S1:"); lcd.print(slotStatus[0] ? "Full " : "Free ");
-  lcd.print("S2:"); lcd.print(slotStatus[1] ? "Full" : "Free");
-  lcd.setCursor(0, 1); lcd.print("S3:"); lcd.print(slotStatus[2] ? "Full " : "Free ");
-  lcd.print("S4:"); lcd.print(slotStatus[3] ? "Full" : "Free");
+  lastDispUpdate = millis();
+  lcd.print("------Wellcome------");
+  lcd.setCursor(0, 1);
+  lcd.print("S1:");
+  lcd.print(slotStatus[0]);
+  lcd.print(" S2:");
+  lcd.print(slotStatus[1]);
+  lcd.print(" S3:");
+  lcd.print(slotStatus[2]);
+  lcd.print(" S4:");
+  lcd.print(slotStatus[3]);
+
+  lcd.setCursor(0, 2);
+  lcd.print("S5:");
+  lcd.print(slotStatus[4]);
+  lcd.print(" S6:");
+  lcd.print(slotStatus[5]);
+  lcd.print(" S7:");
+  lcd.print(slotStatus[6]);
+  lcd.print(" S8:");
+  lcd.print(slotStatus[7]);
 }
 
 String readRFID(MFRC522 &reader) {
@@ -91,12 +129,11 @@ void openGate(Servo &servo, const String &uid, int gate) {
   lcd.print(gate == 1 ? "Welcome UID: " : "Goodbye UID: ");
   lcd.setCursor(0, 1);
   lcd.print(uid.substring(0, 8));
-  delay(100);
+  delay(50);
   servo.write(90);
   lastDispUpdate=millis();
   if(gate==1) isgate1open=true,gate1opentime=millis();
   else isgate2open=true,gate2opentime=millis();
-  delay(50);
 }
 
 void closegate(Servo &servo, int gate) {
@@ -105,4 +142,12 @@ void closegate(Servo &servo, int gate) {
   servo.write(0);
   displaySlots();
   delay(50);
+}
+
+void displayNotification(String message) {
+    lcd.setCursor(0, 3); 
+    lcd.print("                    ");
+    lcd.setCursor(0, 3);
+    lcd.print(message.substring(0, 20));
+    lastDispUpdate=millis();
 }
