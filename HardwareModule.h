@@ -12,9 +12,9 @@
 #define MUX_S2 3
 #define MUX_S3 1
 
-#define NUM_SLOTS 8 
+#define NUM_SLOTS 16
 #define IR_THRESHOLD 500
-
+unsigned int available_Slot;
 // LCD
 LiquidCrystal lcd(13, 12, 14, 27, 26, 25);
 
@@ -72,12 +72,14 @@ void initHardware() {
 
 // Read IR sensor values from MUX
 void updateSlotFromIR() {
+  available_Slot=NUM_SLOTS;
   for (int i = 0; i < NUM_SLOTS; i++) {
     selectMUXChannel(i);
     delay(20); // allow signal to settle
     int value = analogRead(MUX_SIG_PIN);
     Serial.println(value);
     slotStatus[i] = (value < IR_THRESHOLD);
+    available_Slot-=slotStatus[i];
   }
   delay(50);
 }
@@ -124,11 +126,6 @@ String readRFID(MFRC522 &reader) {
 
 void openGate(Servo &servo, const String &uid, int gate) {
   servo.write(0);
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print(gate == 1 ? "Welcome UID: " : "Goodbye UID: ");
-  lcd.setCursor(0, 1);
-  lcd.print(uid.substring(0, 8));
   delay(50);
   servo.write(90);
   lastDispUpdate=millis();
