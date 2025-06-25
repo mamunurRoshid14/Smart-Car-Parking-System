@@ -6,8 +6,11 @@
 #include <time.h>
 
 // Wi-Fi credentials
-#define WIFI_SSID "R8202GHZ"
-#define WIFI_PASSWORD "%A4f%t^ejAGiMP"
+//#define WIFI_SSID "R8202GHZ"
+//#define WIFI_PASSWORD "%A4f%t^ejAGiMP"
+
+#define WIFI_SSID "Ummay"
+#define WIFI_PASSWORD "123456788"
 
 // Firebase credentials
 #define API_KEY "AIzaSyA34JedpoXjgOjT6PJgN06yQBIL8b4Gb24"
@@ -105,8 +108,7 @@ bool isUIDAuthorized(String uid) {
   }
   if (!Firebase.Firestore.getDocument(&fbdo, FIREBASE_PROJECT_ID, "", docPath.c_str())) {
     Serial.println("Authorization failed.");
-    displayNotification("User not registered");
-    displayNotification(uid);
+    displayNotification("Not reg: " + uid);
     return false;
   }
 
@@ -118,9 +120,8 @@ bool isUIDAuthorized(String uid) {
   if (!doc.get(nameData, "fields/fullName/stringValue") || !doc.get(mobileData, "fields/mobile_No/stringValue") || !doc.get(balanceData, "fields/balance/integerValue") || !doc.get(entryData, "fields/entry_time/stringValue") || !doc.get(statusData, "fields/status/integerValue") || !doc.get(minBalanceData, "fields/min_balance/integerValue") || !doc.get(licenceData, "fields/licence_No/stringValue")) {
     Serial.println("Authorization failed.");
     displayNotification("Unknown Error");
-    return false;
+    //return false;
   }
-
   // Store field values
   String fullName = nameData.to<String>();
   String mobileNo = mobileData.to<String>();
@@ -181,7 +182,7 @@ bool handleExit(String uid) {
   if (!doc.get(nameData, "fields/fullName/stringValue") || !doc.get(entryData, "fields/entry_time/stringValue") || !doc.get(balanceData, "fields/balance/integerValue") || !doc.get(statusData, "fields/status/integerValue")) {
     Serial.println("Exit failed.");
     displayNotification("Data error");
-    return false;
+    //return false;
   }
 
   // Step 2: Extract values
